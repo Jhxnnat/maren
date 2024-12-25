@@ -34,10 +34,6 @@ function maren_scann(array) {
     return output
 }
 
-function maren_peek() {
-    return line[cursor]
-}
-
 function maren_peek_next() {
     if (!maren_is_at_end()) {
         return line[cursor+1]
@@ -68,7 +64,7 @@ function maren_make_list() {
 }
 
 function maren_tokenize() {
-    switch (maren_peek()) {
+    switch (line[cursor]) {
         case '#':
             if (maren_peek_next() == ' ') return maren_make_title()
         case '-':
