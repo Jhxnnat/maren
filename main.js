@@ -82,8 +82,10 @@ function maren_make_list() {
 
     while (true) {
         if (maren_is_at_end()) break
-        if (line[cursor] == "*") {
+        if (line[cursor] == "*" && maren_peek_next() != ' ') {
             maren_make_style()
+        } else if (line[cursor] == "[" && maren_peek_next() != ' ') {
+            maren_make_link()
         } else maren_consume()
     }
 
@@ -107,45 +109,82 @@ function maren_make_style() {
 }
 
 function maren_make_kursive() {
-    cursor++
-    output += "<i>"
+    let temp_output = ""
     while (!maren_is_at_end()) {
-        if (line[cursor] == ' ') return
-        if (line[cursor] == '*') {
+        temp_output += line[cursor]
+        cursor++
+        if (line[cursor] == ' ' || maren_is_at_end()) {
+            output += temp_output + ' '
+            // cursor++
+            return
+        } else if (line[cursor] == '*') {
             cursor++
             break
         }
-        maren_consume()
     }
-    output += "</i>"
+    output += "<i>" + temp_output.substring(1) + "</i>"
 }
 
 function maren_make_bold() {
-    cursor += 2
-    output += "<b>"
+    let temp_output = ""
     while (!maren_is_at_end()) {
-        if (line[cursor] == ' ') return
-        if (line[cursor] == '*' && maren_peek_next() == "*") {
+        temp_output += line[cursor]
+        cursor++
+        if (line[cursor] == ' ' || maren_is_at_end()) {
+            output += temp_output + ' '
+            // cursor++
+            return
+        } else if (line[cursor] == '*' && line[cursor+1] == '*') {
             cursor += 2
             break
         }
-        maren_consume()
     }
-    output += "</b>"
+    output += "<b>" + temp_output.substring(2) + "</b>"
 }
 
 function maren_make_kurbold() {
-    cursor += 3
-    output += "<i><b>"
+    let temp_output = ""
     while (!maren_is_at_end()) {
-        if (line[cursor] == ' ') return
-        if (line[cursor] == '*' && maren_peek_next() == "*" && line[cursor+2] == "*") {
+        temp_output += line[cursor]
+        cursor++
+        if (line[cursor] == ' ' || maren_is_at_end()) {
+            output += temp_output + ' '
+            return
+        }
+        else if (line[cursor] == '*' && maren_peek_next() == '*' && line[cursor+2] == '*') {
             cursor += 3
             break
         }
-        maren_consume()
     }
-    output += "</b></i>"
+    output += "<i><b>" + temp_output.substring(3) + "</b></i>"
+}
+
+function maren_make_link() {
+    let temp_ouput = ""
+    let link = ""
+    while (!maren_is_at_end()) {
+        temp_ouput += line[cursor]
+        cursor++
+        if (line[cursor] == ' ' || maren_is_at_end()) {
+            output += temp_ouput + ' '
+            return
+        }
+        else if (line[cursor] == ']' && maren_peek_next() == '(') {
+            while (true) {
+                link += line[cursor]
+                cursor++
+                if (maren_is_at_end() || line[cursor] == ' ') {
+                    output += temp_ouput + link
+                    return
+                } else if (line[cursor] == ')') {
+                    cursor++
+                    break
+                }
+            }
+            break
+        }
+    }
+    output += `<a href="${link.substring(2)}">${temp_ouput.substring(1)}</a>`
 }
 
 function maren_make() {
@@ -162,6 +201,9 @@ function maren_make() {
             }
         case '*':
             if (maren_peek_next() != ' ') { maren_make_style() }
+
+        case '[':
+            if (maren_peek_next() != ' ') { maren_make_link() }
         default: {
             maren_consume()
         }
