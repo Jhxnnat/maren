@@ -5,28 +5,25 @@ let line = "";
 let text = [];
 let output = ""
 
-const render_plain = false
+const render_plain = true
 
 const textarea = document.getElementById("marenarea")
 textarea.addEventListener("input", () => {
-    if (render_plain) maren_render_plain(textarea.value)
+    if (render_plain) maren_render(textarea.value, render_plain)
     else maren_render(textarea.value)
 })
-if (render_plain) maren_render_plain(textarea.value)
-else maren_render(textarea.value)
+maren_render(textarea.value, render_plain)
 
-function maren_render(_text) {
+function maren_render(_text, plain) {
     const div = document.getElementById("maren")   
     text = _text.split('\n')
     maren_scann(text)
-    div.innerHTML = output
-}
-
-function maren_render_plain(_text) {
-    const div = document.getElementById("maren")   
-    text = _text.split('\n')
-    maren_scann(text)
-    div.innerText = output
+    if (plain) {
+        div.innerText = output
+    }
+    else {
+        div.innerHTML = output
+    }
 }
 
 function maren_scann(array) {
@@ -187,6 +184,34 @@ function maren_make_link() {
     output += `<a href="${link.substring(2)}">${temp_ouput.substring(1)}</a>`
 }
 
+function maren_make_image() {
+    let temp_ouput = ""
+    let link = ""
+    while (!maren_is_at_end()) {
+        temp_ouput += line[cursor]
+        cursor++
+        if (line[cursor] == ' ' || maren_is_at_end()) {
+            output += temp_ouput + ' '
+            return
+        }
+        else if (line[cursor] == ']' && maren_peek_next() == '(') {
+            while (true) {
+                link += line[cursor]
+                cursor++
+                if (maren_is_at_end() || line[cursor] == ' ') {
+                    output += temp_ouput + link
+                    return
+                } else if (line[cursor] == ')') {
+                    cursor++
+                    break
+                }
+            }
+            break
+        }
+    }
+    output += `<img src="${link.substring(2)}" alt="${temp_ouput.substring(2)}">`
+}
+
 function maren_make() {
     switch (line[cursor]) {
         case '#':
@@ -195,7 +220,7 @@ function maren_make() {
                 break
             }
         case '-':
-            if (maren_peek_next() == ' ') {
+            if (maren_peek_next() == ' ' && cursor < 1) {
                 maren_make_list()
                 break
             }
@@ -204,6 +229,9 @@ function maren_make() {
 
         case '[':
             if (maren_peek_next() != ' ') { maren_make_link() }
+
+        case '!':
+            if (maren_peek_next() == '[') { maren_make_image() }
         default: {
             maren_consume()
         }
@@ -215,4 +243,5 @@ function maren_tokenize() {
     while (!maren_is_at_end()) {
         maren_make()
     }
+    output += '\n'
 }
